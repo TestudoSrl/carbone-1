@@ -1,9 +1,9 @@
 import os
 import sys
 import argparse
+import json
 import uno, unohelper
 import time
-import shlex
 from com.sun.star.beans import PropertyValue
 from com.sun.star.connection import NoConnectException
 from com.sun.star.document.UpdateDocMode import QUIET_UPDATE
@@ -20,10 +20,6 @@ nbConsecutiveAttemptOpeningDocument = 0
 nbConsecutiveAttemptOpeningDocumentMax = 10
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--pipe")
-parser.add_argument("-i", "--input")
-parser.add_argument("-o", "--output")
-parser.add_argument("-f", "--format")
-parser.add_argument("-fo", "--formatOptions")
 
 
 def UnoProps(**args):
@@ -69,14 +65,19 @@ def retryloop(attempts, timeout, delay=1):
 
 def convert(message):
     global nbConsecutiveAttemptOpeningDocument
-    ### Parse the message
-    messageSplit = shlex.split(message)
-    fileOption = parser.parse_args(args=messageSplit)
+    ### Parse the JSON message
+    try:
+        # Remove trailing newline if present
+        message = message.rstrip('\n')
+        fileOption = json.loads(message)
+    except json.JSONDecodeError:
+        sendErrorOrExit('400')
+        return
 
     document = None
     inputprops = UnoProps(Hidden=True, ReadOnly=True, UpdateDocMode=QUIET_UPDATE)
     cwd = unohelper.systemPathToFileUrl( os.getcwd() )
-    inputurl = unohelper.absolutize(cwd, unohelper.systemPathToFileUrl(fileOption.input))
+    inputurl = unohelper.absolutize(cwd, unohelper.systemPathToFileUrl(fileOption['inputFile']))
 
     try:
         document = desktop.loadComponentFromURL( inputurl , "_blank", 0, inputprops)
@@ -117,10 +118,10 @@ def convert(message):
         for i in range(0, indexes.getCount()):
             indexes.getByIndex(i).update()
 
-    outputprops = UnoProps(FilterName=fileOption.format, Overwrite=True)
-    if fileOption.formatOptions != '':
-        outputprops += UnoProps(FilterOptions=fileOption.formatOptions)
-    outputurl = unohelper.absolutize(cwd, unohelper.systemPathToFileUrl(fileOption.output) )
+    outputprops = UnoProps(FilterName=fileOption['format'], Overwrite=True)
+    if fileOption.get('formatOptions', '') != '':
+        outputprops += UnoProps(FilterOptions=fileOption['formatOptions'])
+    outputurl = unohelper.absolutize(cwd, unohelper.systemPathToFileUrl(fileOption['outputFile']) )
 
     try:
         document.storeToURL(outputurl, tuple(outputprops) )
