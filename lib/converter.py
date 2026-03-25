@@ -77,7 +77,7 @@ def convert(message):
     document = None
     inputprops = UnoProps(Hidden=True, ReadOnly=True, UpdateDocMode=QUIET_UPDATE)
     cwd = unohelper.systemPathToFileUrl( os.getcwd() )
-    inputurl = unohelper.absolutize(cwd, unohelper.systemPathToFileUrl(fileOption['inputFile']))
+    inputurl = uno.systemPathToFileUrl(os.path.abspath(fileOption['inputFile']))
 
     try:
         document = desktop.loadComponentFromURL( inputurl , "_blank", 0, inputprops)
@@ -121,7 +121,8 @@ def convert(message):
     outputprops = UnoProps(FilterName=fileOption['format'], Overwrite=True)
     if fileOption.get('formatOptions', '') != '':
         outputprops += UnoProps(FilterOptions=fileOption['formatOptions'])
-    outputurl = unohelper.absolutize(cwd, unohelper.systemPathToFileUrl(fileOption['outputFile']) )
+    outputurl = uno.systemPathToFileUrl(os.path.abspath(fileOption['outputFile']))
+
 
     try:
         document.storeToURL(outputurl, tuple(outputprops) )
