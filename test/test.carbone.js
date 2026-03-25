@@ -202,6 +202,28 @@ describe('Carbone', function () {
         });
       });
     });
+    it('should add 2 days and format it with timezone', function (done) {
+      carbone.renderXML('{d.date:addD(2, day):formatD(LLLL)}', { date : '2020-10-23T22:00:00Z'}, {timezone : 'Europe/London'}, function (err, result) {
+        helper.assert(err+'', 'null');
+        helper.assert(result, 'Sunday, October 25, 2020 11:00 PM');
+        carbone.renderXML('{d.date:formatD(LLLL)}', { date : '2020-10-25T23:00:00Z'}, { timezone : 'Europe/London'}, function (err, result) {
+          helper.assert(err+'', 'null');
+          helper.assert(result, 'Sunday, October 25, 2020 11:00 PM');
+          done();
+        });
+      });
+    });
+    it('should add 2 days and format it with timezone', function (done) {
+      carbone.renderXML('{d.date:addD(2, day):formatD(LLL)}', { date : '2020-10-23T23:00:00+01:00'}, {timezone : 'Europe/London'}, function (err, result) {
+        helper.assert(err+'', 'null');
+        helper.assert(result, 'October 25, 2020 11:00 PM');
+        carbone.renderXML('{d.date:formatD(LLL)}', { date : '2020-10-25T23:00:00+00:00'}, { timezone : 'Europe/London'}, function (err, result) {
+          helper.assert(err+'', 'null');
+          helper.assert(result, 'October 25, 2020 11:00 PM');
+          done();
+        });
+      });
+    });
   });
 
 
