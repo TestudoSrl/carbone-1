@@ -31,21 +31,23 @@
 
 <p><b>⚡️ Fast, Simple and Powerful report generator</b> in any format PDF, DOCX, XLSX, ODT, PPTX, ODS, XML, CSV using templates and your JSON data as input !</p>
 
-### News 2024/02
+### News 2025/03
 
-Use the latest version (v4+) for free with our Docker Edition:
+[Join us on our Discord](https://discord.gg/kKB3aPYqnh)
+
+Use the latest version (v4+) for free with our [Docker Edition](https://hub.docker.com/r/carbone/carbone-ee):
 
 ```sh
   docker pull carbone/carbone-ee
 ```
 
-Since v4.18.0 (February 14, 2024), no license is required to start the On-Premise Docker Edition with the REST API (same API as the Cloud Edition).
+No license is required to start the [On-Premise Docker Edition](https://hub.docker.com/r/carbone/carbone-ee) with the REST API (same API as the [Cloud Edition](https://carbone.io/pricing.html)).
 You will only need a license if you want to use some advanced features. By default, only community features are enabled.
 
-Why? We try to optimize our time as much as possible. We are working on many things for the long-awaited Carbone v5 (new studio, new website, IA, ...).
+Why? We try to optimize our time as much as possible. We are working on many things for the [long-awaited Carbone v5](https://carbone.io/carbone-v5.html) (new studio, new website, IA, ...).
 Activating community features in the Docker Edition was much easier. This edition is updated as often as the Enterprise Edition with our automatic CI.
 
-The Open Source Edition will be updated in v4 when the v5 will be released. The open source edition is always one major version behind (v3+)
+The Open Source Edition will be updated in v4 when the final v5 will be released. The open source edition is always one major version behind (v3+)
 
 Feel free to contact us [on the chat](https://carbone.io) if you need further information or  **professional support**. 
 
@@ -101,7 +103,7 @@ Carbone is working only on the server-side.
 
 ## Minimum Requirements
 
-- NodeJS 12.x+
+- NodeJS 14.x+
 - Runs on OSX, Linux (servers and desktop), and Windows
 
 #### Optional
@@ -266,12 +268,12 @@ And now, you can use the converter, by passing options to render method.
 
 ## API Reference
 
-To check out the **[api reference](https://carbone.io/api-reference.html#carbone-js-api)** and the **[documentation](https://carbone.io/documentation)**, visit [carbone.io](http://carbone.io).
+To check out the **[api reference](https://carbone.io/documentation/developer/embedding/embedding-in-node.html)** and the **[documentation](https://carbone.io/documentation)**, visit [carbone.io](http://carbone.io).
 
 
 ## Command line tools
 
-To checkout out the Carbone CLI documentation, visit [carbone.io](https://carbone.io/api-reference.html#cli)
+To checkout out the Carbone CLI documentation, visit [carbone.io](https://carbone.io/documentation/developer/embedding/embedding-in-node.html#cli)
 
 ## Issues
 
@@ -298,7 +300,7 @@ There are two editions of Carbone:
 
 - Carbone Community Edition is freely available under the [CCL Agreement](LICENSE.md). Roughly speaking, as long as you are not offering Carbone Community Edition Software as a hosted
   Document-Generator-as-a-Service like [Carbone Cloud](https://carbone.io/pricing.html), you can use and modify all Community features for free.
-- Carbone Enterprise Edition (hosted and on-premise) includes additional features. [See comparison table](https://carbone.io/pricing.html#product-comparison)
+- Carbone Enterprise Edition (hosted and on-premise) includes additional features. Here is a [high-level comparison table](https://carbone.io/documentation/design/overview/template-feature.html#template-types) of community and enterprise features.
 
 The Community Edition is one major version behind the Enterprise Edition. This rule may change in the future.
 
