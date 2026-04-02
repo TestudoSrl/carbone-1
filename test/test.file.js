@@ -147,6 +147,14 @@ describe('file', function () {
   });
 
   describe('unzip', function () {
+    it('should return an error when trying to unzip a zip bomb file', function (done) {
+      var _filePath = path.resolve('./test/datasets/zip/bomb.zip');
+      file.unzip(_filePath, function (err, files) {
+        assert.ok(err, 'Expected an error for zip bomb');
+        assert.strictEqual(err.message, 'ZIP rejected: total expanded size too large');
+        done();
+      });
+    });
     it('should unzip a file and return a array which contain its content', function (done) {
       var _filePath = path.resolve('./test/datasets/test_word_render_A.docx');
       var _expectedFiles = {
