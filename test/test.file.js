@@ -148,7 +148,7 @@ describe('file', function () {
 
   describe('unzip', function () {
     it('should return an error when trying to unzip a zip bomb file', function (done) {
-      var _filePath = path.resolve('./test/datasets/zip/bomb.zip');
+      var _filePath = path.resolve('./test/datasets/zip-failure/bomb.zip');
       file.unzip(_filePath, function (err, files) {
         assert.ok(err, 'Expected an error for zip bomb');
         assert.strictEqual(err.message, 'ZIP rejected: total expanded size too large');
