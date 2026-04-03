@@ -31,26 +31,24 @@
 
 <p><b>⚡️ Fast, Simple and Powerful report generator</b> in any format PDF, DOCX, XLSX, ODT, PPTX, ODS, XML, CSV using templates and your JSON data as input !</p>
 
-### News 2025/03
+### News 2026/03
 
 [Join us on our Discord](https://discord.gg/kKB3aPYqnh)
 
-Use the latest version (v4+) for free with our [Docker Edition](https://hub.docker.com/r/carbone/carbone-ee):
+Use the latest version (v5+) for free with our [Docker Edition](https://hub.docker.com/r/carbone/carbone-ee):
 
 ```sh
-  docker pull carbone/carbone-ee
+  docker pull carbone/carbone-ee:latest
 ```
 
 No license is required to start the [On-Premise Docker Edition](https://hub.docker.com/r/carbone/carbone-ee) with the REST API (same API as the [Cloud Edition](https://carbone.io/pricing.html)).
-You will only need a license if you want to use some advanced features. By default, only community features are enabled.
+A license is only required for advanced features. By default, only community features are enabled.
 
-Why? We try to optimize our time as much as possible. We are working on many things for the [long-awaited Carbone v5](https://carbone.io/carbone-v5.html) (new studio, new website, IA, ...).
-Activating community features in the Docker Edition was much easier. This edition is updated as often as the Enterprise Edition with our automatic CI.
+Check out our [changelog](https://carbone.io/changelog.html)
 
-The Open Source Edition will be updated in v4 when the final v5 will be released. The open source edition is always one major version behind (v3+)
+This open-source edition, which can be embedded in Node.js, is always one major version behind. We will update it to v4 as soon as possible. Thank you for your patience.
 
-Feel free to contact us [on the chat](https://carbone.io) if you need further information or  **professional support**. 
-
+Feel free to contact us [via chat](https://carbone.io) if you need further information or  **professional support**. 
 
 ## Table of content
 
