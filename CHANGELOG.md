@@ -1,6 +1,6 @@
 
 ### v3.5.7
-  - Release: January 17th 2026
+  - Release: April 6th 2026
   - ⚠️ Fix a critical security issue identified in a recent audit
   - Add limits for unzipped templates to improve resistance to zip bomb denial-of-service attacks
 
