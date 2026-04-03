@@ -101,6 +101,8 @@ describe('formatter', function () {
       helper.assert(dateFormatter.formatD.call(
         { lang : 'en', timezone : 'Europe/Paris' }, '2021-04-01T08:00+1100', 'LLLL'), 'Wednesday, March 31, 2021 11:00 PM'
       );
+      // check iana db up to date (2025)
+      helper.assert(dateFormatter.formatD.call({lang : 'en', timezone : 'america/mexico_city'}, '2025-07-24T18:57:00Z', 'LLL'), 'July 24, 2025 12:57 PM');
     });
   });
   describe('convCRLF', function () {
