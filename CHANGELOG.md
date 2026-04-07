@@ -1,8 +1,9 @@
 
-### v3.5.7
-  - Release: April 6th 2026
-  - ⚠️ Fix a critical security issue identified in a recent audit
-  - Add limits for unzipped templates to improve resistance to zip bomb denial-of-service attacks
+### v3.8.2
+  - Release: April 3rd 2026
+  - Fix a critical security issue identified in a recent audit
+  - Add limits `maxTemplateUncompressedSize` (200 MB by default) for unzipped templates to improve resistance to zip bomb denial-of-service attacks
+  - Align the version published on npm with the Enterprise Edition version. All fixes between v3.5.6 and v3.8.2 do not affect the npm version, but we are aligning the version numbers for simplicity.
 
 ### v3.5.6
   - Release June 12th 2024

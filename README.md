@@ -31,7 +31,7 @@
 
 <p><b>⚡️ Fast, Simple and Powerful report generator</b> in any format PDF, DOCX, XLSX, ODT, PPTX, ODS, XML, CSV using templates and your JSON data as input !</p>
 
-### News 2026/03
+### News 2026/04
 
 [Join us on our Discord](https://discord.gg/kKB3aPYqnh)
 
@@ -107,6 +107,7 @@ Carbone is working only on the server-side.
 #### Optional
 
 - LibreOffice server if you want to use the document converter and generate PDF. Without LibreOffice, you can still generate docx, xlsx, pptx, odt, ods, odp, html as long as your template is in the same format.
+- Carbone v5 also supports Chrome and OnlyOffice converters
 
 
 ## Getting started
