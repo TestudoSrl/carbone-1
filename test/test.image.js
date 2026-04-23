@@ -270,4 +270,134 @@ describe('image (generateImage) — row-level dynamic images', function () {
     });
   });
 
+  describe('scanImageMarkers (odt)', function () {
+
+    function buildOdtTemplate (contentXml) {
+      return {
+        files : [
+          { name : 'content.xml', data : contentXml, parent : '' },
+          { name : 'META-INF/manifest.xml',
+            data : '<?xml version="1.0"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">' +
+                   '<manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/>' +
+                   '<manifest:file-entry manifest:full-path="Pictures/orig.png" manifest:media-type="image/png"/>' +
+                   '</manifest:manifest>',
+            parent : '' }
+        ],
+        embeddings : [],
+        filename   : 'x.odt',
+        extension  : 'odt'
+      };
+    }
+
+    var frameWithMarker =
+      '<text:p>' +
+        '<draw:frame draw:name="Image1" svg:width="5cm" svg:height="2cm">' +
+          '<draw:image xlink:href="Pictures/orig.png" xlink:type="simple" xlink:show="embed" loext:mime-type="image/png"/>' +
+          '<svg:title>Signature</svg:title>' +
+          '<svg:desc>{d.rows[i].order.signatureImage:generateImage()}</svg:desc>' +
+        '</draw:frame>' +
+      '</text:p>';
+
+    it('should rename draw:name, blank desc, inject hidden <text:p>, and register origHref', function () {
+      var template = buildOdtTemplate(frameWithMarker);
+      image.scanImageMarkers(template, 'odt');
+
+      var registry = template._carboneImageRegistry;
+      assert.deepStrictEqual(Object.keys(registry.entries), ['1']);
+      assert.strictEqual(registry.entries[1].format, 'odt');
+      assert.strictEqual(registry.entries[1].origHref, 'Pictures/orig.png');
+      assert.strictEqual(registry.entries[1].markerPath, 'd.rows[i].order.signatureImage');
+
+      var rewritten = template.files[0].data;
+      assert.ok(/draw:name="_carbone_img_1"/.test(rewritten), 'draw:name rewritten: ' + rewritten);
+      assert.ok(/<svg:desc><\/svg:desc>/.test(rewritten), 'svg:desc blanked: ' + rewritten);
+      assert.ok(/<text:p>\{d\.rows\[i\]\.order\.signatureImage:_carboneImage\(1\)\}<\/text:p>/.test(rewritten),
+        'hidden <text:p> with _carboneImage(1) marker missing: ' + rewritten);
+    });
+
+    it('should find the marker in <svg:title> when <svg:desc> has no marker', function () {
+      var xml = frameWithMarker
+        .replace('<svg:title>Signature</svg:title>',
+          '<svg:title>{d.foo:generateImage()}</svg:title>')
+        .replace('<svg:desc>{d.rows[i].order.signatureImage:generateImage()}</svg:desc>',
+          '<svg:desc>something else</svg:desc>');
+      var template = buildOdtTemplate(xml);
+      image.scanImageMarkers(template, 'odt');
+      assert.strictEqual(template._carboneImageRegistry.entries[1].markerPath, 'd.foo');
+    });
+
+    it('should ignore frames without a generateImage marker', function () {
+      var xml = frameWithMarker.replace(':generateImage()', '');
+      var template = buildOdtTemplate(xml);
+      image.scanImageMarkers(template, 'odt');
+      assert.deepStrictEqual(Object.keys(template._carboneImageRegistry.entries), []);
+      assert.ok(!/_carboneImage/.test(template.files[0].data));
+    });
+  });
+
+  describe('applyImagePatches (odt)', function () {
+
+    var PNG_1x1_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    var DATA_URI = 'data:image/png;base64,' + PNG_1x1_BASE64;
+
+    function buildOdtReportTwoRows (payloadA, payloadB) {
+      function row (payload) {
+        return '<table:table-row><table:table-cell>' +
+          '<text:p>' +
+            '<draw:frame draw:name="_carbone_img_1" svg:width="5cm" svg:height="2cm">' +
+              '<draw:image xlink:href="Pictures/orig.png" xlink:type="simple" loext:mime-type="image/png"/>' +
+              '<svg:title></svg:title><svg:desc></svg:desc>' +
+            '</draw:frame>' +
+          '</text:p>' +
+          '<text:p>' + image.TOKEN_START + '1' + image.TOKEN_SEP + payload + image.TOKEN_END + '</text:p>' +
+        '</table:table-cell></table:table-row>';
+      }
+      var contentXml = '<office:document-content><office:body><office:text><table:table>' +
+        row(payloadA) + row(payloadB) +
+      '</table:table></office:text></office:body></office:document-content>';
+      var manifestXml = '<?xml version="1.0"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">' +
+        '<manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/>' +
+        '<manifest:file-entry manifest:full-path="Pictures/orig.png" manifest:media-type="image/png"/>' +
+        '</manifest:manifest>';
+      return {
+        files : [
+          { name : 'content.xml', data : contentXml, parent : '' },
+          { name : 'META-INF/manifest.xml', data : manifestXml, parent : '' }
+        ]
+      };
+    }
+
+    it('should emit a Pictures/ entry + manifest line + xlink:href patch per row', function () {
+      var report = buildOdtReportTwoRows(DATA_URI, DATA_URI);
+      image.applyImagePatches(report, 'odt');
+
+      var media = report.files.filter(function (f) { return /^Pictures\/carbone_img_/.test(f.name); });
+      assert.strictEqual(media.length, 2);
+      media.forEach(function (f) {
+        assert.ok(Buffer.isBuffer(f.data));
+        assert.ok(f.data.length > 0);
+      });
+
+      var manifest = report.files.filter(function (f) { return f.name === 'META-INF/manifest.xml'; })[0];
+      var manifestRe = /<manifest:file-entry[^/>]*full-path="Pictures\/carbone_img_\d+\.png"/g;
+      var manifestMatches = manifest.data.match(manifestRe);
+      assert.ok(manifestMatches && manifestMatches.length === 2,
+        'expected 2 new manifest entries, got ' + (manifestMatches ? manifestMatches.length : 0));
+
+      var doc = report.files.filter(function (f) { return f.name === 'content.xml'; })[0];
+      assert.ok(!/xlink:href="Pictures\/orig\.png"/.test(doc.data),
+        'original href should be replaced: ' + doc.data);
+      assert.ok(!/__CBIMG__/.test(doc.data), 'tokens must be stripped');
+      var newHrefRe = /xlink:href="Pictures\/carbone_img_\d+\.png"/g;
+      var newHrefs = doc.data.match(newHrefRe);
+      assert.ok(newHrefs && newHrefs.length === 2, 'expected 2 new hrefs');
+    });
+
+    it('should throw on a non-data-URI payload (odt)', function () {
+      var report = buildOdtReportTwoRows('not-a-data-uri', DATA_URI);
+      assert.throws(function () { image.applyImagePatches(report, 'odt'); },
+        /\[carbone:generateImage\] invalid image data.*imgId=1/);
+    });
+  });
+
 });
