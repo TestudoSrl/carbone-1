@@ -24,7 +24,13 @@ RUN apt-get update \
       fonts-liberation \
       ca-certificates \
       tini \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ # Carbone's LibreOffice discovery scans /opt/libreofficeN.N/program/ on Linux
+ # and looks for `soffice.bin` in PATH — neither matches the Debian layout
+ # (/usr/lib/libreoffice/program/soffice.bin, /usr/bin/soffice), so expose the
+ # install under the expected /opt path using the major.minor version tag.
+ && LO_VER=$(soffice --version | awk '{print $2}' | cut -d. -f1-2) \
+ && ln -s /usr/lib/libreoffice "/opt/libreoffice${LO_VER}"
 
 WORKDIR /app
 
