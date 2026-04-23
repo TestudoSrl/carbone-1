@@ -400,4 +400,175 @@ describe('image (generateImage) — row-level dynamic images', function () {
     });
   });
 
+  describe('scanImageMarkers (xlsx)', function () {
+
+    function buildXlsxTemplate (drawingXml, sheetXml) {
+      return {
+        files : [
+          { name : 'xl/drawings/drawing1.xml', data : drawingXml, parent : '' },
+          { name : 'xl/drawings/_rels/drawing1.xml.rels',
+            data : '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                   '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>' +
+                   '</Relationships>',
+            parent : '' },
+          { name : 'xl/worksheets/sheet1.xml', data : sheetXml, parent : '' },
+          { name : 'xl/worksheets/_rels/sheet1.xml.rels',
+            data : '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                   '<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>' +
+                   '</Relationships>',
+            parent : '' }
+        ],
+        embeddings : [],
+        filename   : 'x.xlsx',
+        extension  : 'xlsx'
+      };
+    }
+
+    var anchorWithMarker =
+      '<xdr:twoCellAnchor editAs="oneCell">' +
+        '<xdr:from><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>4</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' +
+        '<xdr:to><xdr:col>3</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>' +
+        '<xdr:pic>' +
+          '<xdr:nvPicPr>' +
+            '<xdr:cNvPr id="2" name="Picture 1" descr="{d.rows[i].img:generateImage()}"/>' +
+            '<xdr:cNvPicPr/>' +
+          '</xdr:nvPicPr>' +
+          '<xdr:blipFill><a:blip r:embed="rId1"/></xdr:blipFill>' +
+        '</xdr:pic>' +
+        '<xdr:clientData/>' +
+      '</xdr:twoCellAnchor>';
+
+    var drawingXml = '<?xml version="1.0"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing">' +
+      anchorWithMarker + '</xdr:wsDr>';
+
+    // Sheet has rows 1..5 with plain text. The image anchor points at
+    // xdr:row=4 which is visual row 5 — that's where the marker loop will run.
+    var sheetXml = '<?xml version="1.0"?><worksheet><sheetData>' +
+      '<row r="1"><c r="A1"><v>1</v></c></row>' +
+      '<row r="2"><c r="A2"><v>2</v></c></row>' +
+      '<row r="3"><c r="A3"><v>3</v></c></row>' +
+      '<row r="4"><c r="A4"><v>4</v></c></row>' +
+      '<row r="5"><c r="A5" t="inlineStr"><is><t>{d.rows[i].label}</t></is></c></row>' +
+      '</sheetData></worksheet>';
+
+    it('should rename cNvPr, blank descr, and inject a hidden cell in the anchor row', function () {
+      var template = buildXlsxTemplate(drawingXml, sheetXml);
+      image.scanImageMarkers(template, 'xlsx');
+
+      var registry = template._carboneImageRegistry;
+      assert.deepStrictEqual(Object.keys(registry.entries), ['1']);
+      assert.strictEqual(registry.entries[1].format, 'xlsx');
+      assert.strictEqual(registry.entries[1].fromRow, 4);
+      assert.strictEqual(registry.entries[1].markerPath, 'd.rows[i].img');
+      assert.strictEqual(registry.entries[1].origRelId, 'rId1');
+
+      var rewrittenDrawing = template.files[0].data;
+      assert.ok(/name="_carbone_img_1"/.test(rewrittenDrawing), 'cNvPr renamed: ' + rewrittenDrawing);
+      assert.ok(/descr=""/.test(rewrittenDrawing), 'descr cleared: ' + rewrittenDrawing);
+
+      var rewrittenSheet = template.files[2].data;
+      // Hidden cell injected into row 5 (anchor visual row).
+      assert.ok(/<row\b[^>]*\br="5"[\s\S]*_carboneImage\(1\)[\s\S]*<\/row>/.test(rewrittenSheet),
+        'hidden cell with _carboneImage(1) missing in row 5: ' + rewrittenSheet);
+      // Marker cell uses column ZZZ5 (reserved) to avoid colliding with template cells.
+      assert.ok(/r="ZZZ5"/.test(rewrittenSheet), 'token cell should use reserved column: ' + rewrittenSheet);
+    });
+  });
+
+  describe('applyImagePatches (xlsx)', function () {
+
+    var PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    var DATA_URI = 'data:image/png;base64,' + PNG;
+
+    function buildXlsxReportWithExpandedLoop () {
+      // Simulates the state AFTER Carbone's loop expansion: the original
+      // anchor row is duplicated N times, each copy carrying the token cell.
+      var rows = [];
+      for (var i = 0; i < 3; i++) {
+        rows.push(
+          '<row>' +
+            '<c t="inlineStr"><is><t>row ' + i + '</t></is></c>' +
+            '<c t="inlineStr"><is><t>' +
+              image.TOKEN_START + '1' + image.TOKEN_SEP + DATA_URI + image.TOKEN_END +
+            '</t></is></c>' +
+          '</row>'
+        );
+      }
+      var sheet = '<?xml version="1.0"?><worksheet><sheetData>' +
+        '<row><c t="inlineStr"><is><t>header A</t></is></c></row>' +
+        '<row><c t="inlineStr"><is><t>header B</t></is></c></row>' +
+        '<row><c t="inlineStr"><is><t>header C</t></is></c></row>' +
+        '<row><c t="inlineStr"><is><t>header D</t></is></c></row>' +
+        rows.join('') +
+        '</sheetData></worksheet>';
+
+      // Drawing with a single anchor already renamed to _carbone_img_1.
+      var drawing = '<?xml version="1.0"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing">' +
+        '<xdr:twoCellAnchor editAs="oneCell">' +
+          '<xdr:from><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>4</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>' +
+          '<xdr:to><xdr:col>3</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>' +
+          '<xdr:pic>' +
+            '<xdr:nvPicPr>' +
+              '<xdr:cNvPr id="2" name="_carbone_img_1" descr=""/>' +
+              '<xdr:cNvPicPr/>' +
+            '</xdr:nvPicPr>' +
+            '<xdr:blipFill><a:blip r:embed="rId1"/></xdr:blipFill>' +
+          '</xdr:pic>' +
+          '<xdr:clientData/>' +
+        '</xdr:twoCellAnchor>' +
+      '</xdr:wsDr>';
+
+      return {
+        files : [
+          { name : 'xl/drawings/drawing1.xml', data : drawing, parent : '' },
+          { name : 'xl/drawings/_rels/drawing1.xml.rels',
+            data : '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                   '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>' +
+                   '</Relationships>',
+            parent : '' },
+          { name : 'xl/worksheets/sheet1.xml', data : sheet, parent : '' },
+          { name : 'xl/worksheets/_rels/sheet1.xml.rels',
+            data : '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                   '<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>' +
+                   '</Relationships>',
+            parent : '' },
+          { name : '[Content_Types].xml',
+            data : '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+                   '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+                   '<Default Extension="xml" ContentType="application/xml"/>' +
+                   '</Types>',
+            parent : '' }
+        ]
+      };
+    }
+
+    it('should clone the anchor per iteration, shift rows, and emit media + rels', function () {
+      var report = buildXlsxReportWithExpandedLoop();
+      image.applyImagePatches(report, 'xlsx');
+
+      var media = report.files.filter(function (f) { return /^xl\/media\/carbone_img_/.test(f.name); });
+      assert.strictEqual(media.length, 3, 'expected 3 media files');
+
+      var drawing = report.files.filter(function (f) { return f.name === 'xl/drawings/drawing1.xml'; })[0];
+      // Original xdr:row=4,5 must be gone (replaced by shifted clones).
+      var anchors = drawing.data.match(/<xdr:twoCellAnchor\b[\s\S]*?<\/xdr:twoCellAnchor>/g) || [];
+      assert.strictEqual(anchors.length, 3, 'expected 3 clone anchors');
+      var fromRows = anchors.map(function (a) {
+        return parseInt(/<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/.exec(a)[1], 10);
+      });
+      assert.deepStrictEqual(fromRows, [4, 5, 6], 'from rows should be shifted per iteration');
+
+      var rels = report.files.filter(function (f) { return f.name === 'xl/drawings/_rels/drawing1.xml.rels'; })[0];
+      var newRelCount = (rels.data.match(/Target="\.\.\/media\/carbone_img_\d+\.png"/g) || []).length;
+      assert.strictEqual(newRelCount, 3, 'expected 3 new rels');
+
+      var sheet = report.files.filter(function (f) { return f.name === 'xl/worksheets/sheet1.xml'; })[0];
+      assert.ok(!/__CBIMG__/.test(sheet.data), 'tokens must be stripped from the sheet');
+
+      var ct = report.files.filter(function (f) { return f.name === '[Content_Types].xml'; })[0];
+      assert.ok(/Extension="png"\s+ContentType="image\/png"/.test(ct.data),
+        'png content-type must be registered');
+    });
+  });
+
 });
