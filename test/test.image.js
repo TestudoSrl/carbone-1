@@ -149,12 +149,35 @@ describe('image (generateImage) — row-level dynamic images', function () {
       assert.ok(/_carboneImage\(2\)/.test(template.files[0].data));
     });
 
-    it('should ignore drawings whose descr has no generateImage marker', function () {
+    it('should accept a bare Carbone marker in descr (no :generateImage() suffix)', function () {
+      // Real-world templates authored against Carbone Cloud/EE write just the
+      // path — e.g. descr="{d.rows[i].order.signatureImage}". We match that.
       var xml = drawingWithMarker.replace(':generateImage()', '');
       var template = buildDocxTemplate(xml, simpleRels);
       image.scanImageMarkers(template, 'docx');
+      assert.deepStrictEqual(Object.keys(template._carboneImageRegistry.entries), ['1']);
+      assert.strictEqual(template._carboneImageRegistry.entries[1].markerPath,
+        'd.rows[i].order.signatureImage');
+      assert.ok(/_carboneImage\(1\)/.test(template.files[0].data));
+    });
+
+    it('should ignore drawings whose descr is plain text (no Carbone marker)', function () {
+      var xml = drawingWithMarker.replace(
+        'descr="{d.rows[i].order.signatureImage:generateImage()}"',
+        'descr="Signature of the operator"');
+      var template = buildDocxTemplate(xml, simpleRels);
+      image.scanImageMarkers(template, 'docx');
       assert.deepStrictEqual(Object.keys(template._carboneImageRegistry.entries), []);
-      assert.ok(!/_carboneImage/.test(template.files[0].data), 'no hidden run should be injected');
+      assert.ok(!/_carboneImage/.test(template.files[0].data));
+    });
+
+    it('should ignore drawings whose descr uses a non-image formatter', function () {
+      var xml = drawingWithMarker.replace(
+        'descr="{d.rows[i].order.signatureImage:generateImage()}"',
+        'descr="{d.rows[i].order.date:formatD(&apos;YYYY&apos;)}"');
+      var template = buildDocxTemplate(xml, simpleRels);
+      image.scanImageMarkers(template, 'docx');
+      assert.deepStrictEqual(Object.keys(template._carboneImageRegistry.entries), []);
     });
 
     it('should be a no-op for unsupported formats', function () {
@@ -326,12 +349,23 @@ describe('image (generateImage) — row-level dynamic images', function () {
       assert.strictEqual(template._carboneImageRegistry.entries[1].markerPath, 'd.foo');
     });
 
-    it('should ignore frames without a generateImage marker', function () {
+    it('should accept a bare Carbone marker in <svg:desc> (no :generateImage() suffix)', function () {
       var xml = frameWithMarker.replace(':generateImage()', '');
       var template = buildOdtTemplate(xml);
       image.scanImageMarkers(template, 'odt');
+      assert.deepStrictEqual(Object.keys(template._carboneImageRegistry.entries), ['1']);
+      assert.strictEqual(template._carboneImageRegistry.entries[1].markerPath,
+        'd.rows[i].order.signatureImage');
+    });
+
+    it('should ignore frames whose desc is plain text', function () {
+      var xml = frameWithMarker.replace(
+        '<svg:desc>{d.rows[i].order.signatureImage:generateImage()}</svg:desc>',
+        '<svg:desc>Operator signature</svg:desc>')
+        .replace('<svg:title>Signature</svg:title>', '<svg:title>Title</svg:title>');
+      var template = buildOdtTemplate(xml);
+      image.scanImageMarkers(template, 'odt');
       assert.deepStrictEqual(Object.keys(template._carboneImageRegistry.entries), []);
-      assert.ok(!/_carboneImage/.test(template.files[0].data));
     });
   });
 
