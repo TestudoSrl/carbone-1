@@ -1,7 +1,7 @@
 {
   "name": "carbone",
   "description": "Fast, Simple and Powerful report generator. Injects JSON and produces PDF, DOCX, XLSX, ODT, PPTX, ODS, ...! (Testudo fork — adds :generateImage() for DOCX/ODT/XLSX)",
-  "version": "3.8.2-testudo.1",
+  "version": "3.8.2-testudo.2",
   "bin": "bin/carbone",
   "main": "./lib",
   "author": "David Grelaud",
