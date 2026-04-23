@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+node_modules
+test
+doc
+examples
+scripts
+CHANGELOG.md
+SECURITY.md
+README.md
+*.log
